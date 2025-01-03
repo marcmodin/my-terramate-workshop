@@ -33,7 +33,7 @@ jobs:
 
       - name: List changed stacks
         id: list-changed
-        run: terramate list --changed
+        run: terramate list --changed -v
 
       - name: Configure AWS credentials
         if: steps.list-changed.outputs.stdout
