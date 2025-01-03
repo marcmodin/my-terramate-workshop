@@ -36,7 +36,7 @@ jobs:
 
       - name: List changed stacks
         id: list-changed
-        run: terramate list --changed -v
+        run: terramate list --changed
 
       - name: Configure AWS credentials
         if: steps.list-changed.outputs.stdout
@@ -47,12 +47,12 @@ jobs:
           aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
 
       - name: Run Terraform Init
-        if: steps.list-changed-stacks.outputs.stdout
+        if: steps.list-changed.outputs.stdout
         run: |
           terramate run --changed -- terraform init -detailed-exitcode
 
       - name: Run Terraform Plan
-        if: steps.list-changed-stacks.outputs.stdout
+        if: steps.list-changed.outputs.stdout
         run: |
           terramate run \
             --changed \
