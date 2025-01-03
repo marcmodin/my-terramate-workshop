@@ -7,4 +7,8 @@ stack {
     "aws",
     "security"
   ]
+
+  after = [
+    "tag:vpc",
+  ]
 }
