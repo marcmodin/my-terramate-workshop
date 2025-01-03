@@ -23,3 +23,13 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
+
+      - name: Install Dependencies
+        uses: jetify-com/devbox-install-action@v0.11.0
+        with:
+          enable-cache: true
+
+      - name: Configure devbox
+        run: |
+          eval "$(devbox shellenv)"
+          printenv >> $GITHUB_ENV
