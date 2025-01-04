@@ -61,7 +61,7 @@ jobs:
             --continue-on-error \
             --parallel 3 \
             -- \
-            terraform plan -input=false -detailed-exitcode -out=plan.tfplan
+            terraform plan -input=false -out=plan.tfplan
 
       - name: Run Terraform Plan
         if: steps.list-changed.outputs.out
