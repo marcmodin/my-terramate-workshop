@@ -71,4 +71,4 @@ jobs:
             --continue-on-error \
             --parallel 3 \
             -- \
-            terraform apply -input=false -lock=false -detailed-exitcode -auto-approve plan.tfplan
+            terraform apply -input=false -lock=false -auto-approve plan.tfplan
