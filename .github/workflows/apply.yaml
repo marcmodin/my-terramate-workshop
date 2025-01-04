@@ -2,9 +2,9 @@ name: Terraform Apply
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
 
 jobs:
   preview:
@@ -24,8 +24,13 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - name: Install Dependencies
-        uses: jetify-com/devbox-install-action@v0.11.0
+      # - name: Install Dependencies
+      #   uses: jetify-com/devbox-install-action@v0.11.0
+      #   with:
+      #     enable-cache: true
+
+      - name: Install Dependencies (Custom)
+        uses: ./.github/actions/devbox-action
         with:
           enable-cache: true
 
@@ -36,7 +41,6 @@ jobs:
 
       - name: List changed stacks
         id: list-changed
-        # run: terramate list --changed
         run: echo "out=$(terramate list --changed)" >> $GITHUB_OUTPUT
 
       - name: Configure AWS credentials
@@ -61,7 +65,7 @@ jobs:
             --continue-on-error \
             --parallel 3 \
             -- \
-            terraform plan -input=false -detailed-exitcode -out=plan.tfplan
+            terraform plan -input=false -out=plan.tfplan
 
       - name: Run Terraform Plan
         if: steps.list-changed.outputs.out
