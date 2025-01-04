@@ -61,4 +61,14 @@ jobs:
             --continue-on-error \
             --parallel 3 \
             -- \
-            terraform apply -input=false -lock=false -detailed-exitcode -auto-approve
+            terraform plan -input=false -detailed-exitcode -out=plan.tfplan
+
+      - name: Run Terraform Plan
+        if: steps.list-changed.outputs.out
+        run: |
+          terramate run \
+            --changed \
+            --continue-on-error \
+            --parallel 3 \
+            -- \
+            terraform apply -input=false -lock=false -detailed-exitcode -auto-approve plan.tfplan
