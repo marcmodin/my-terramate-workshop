@@ -51,7 +51,7 @@ jobs:
       - name: Run Terraform Init
         if: steps.list-changed.outputs.out
         run: |
-          terramate run --changed -- terraform init -detailed-exitcode
+          terramate run --changed -- terraform init
 
       - name: Run Terraform Plan
         if: steps.list-changed.outputs.out
