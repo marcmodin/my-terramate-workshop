@@ -71,6 +71,7 @@ jobs:
         if: steps.list-changed.outputs.out
         run: |
           terramate run \
+            --disable-safeguards=all \
             --changed \
             --continue-on-error \
             --parallel 3 \
