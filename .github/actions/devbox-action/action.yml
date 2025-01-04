@@ -1,0 +1,181 @@
+name: "devbox custom installer"
+description: "Install Devbox in your CICD workflow"
+branding:
+  icon: "box"
+  color: "purple"
+
+inputs:
+  project-path: # path to folder
+    description: "Project path to devbox.json. Default to the root directory of the repository."
+    default: "."
+  enable-cache: # 'true' or 'false'
+    description: "Caching the entire Nix store in github based on your devbox.json"
+    default: "false"
+  refresh-cli: # 'true' or 'false'
+    description: "Specify whether the CLI should be redownloaded"
+    default: "false"
+  devbox-version: # version of the devbox cli
+    description: "Specify devbox CLI version you want to pin to. Default to latest"
+    default: ""
+  sha256-checksum: # the expected SHA256 checksum of the devbox binary.
+    description: "Specify an explicit checksum for the devbox binary. For extra security on top of the existing checks in the devbox launch script"
+  disable-nix-access-token: # 'true' or 'false'
+    description: "Disable configuration of nix access-tokens with the GitHub token used in the workflow"
+    default: "false"
+  skip-nix-installation: # 'true' or 'false'
+    description: "Skip the installation of nix"
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get devbox version
+      shell: bash
+      env:
+        DEVBOX_USE_VERSION: ${{ inputs.devbox-version }}
+      run: |
+        if [[ -n $DEVBOX_USE_VERSION ]]; then
+          echo "latest_version=$DEVBOX_USE_VERSION" >> $GITHUB_ENV
+        else
+          tmp_file=$(mktemp)
+          latest_url="https://releases.jetify.com/devbox/stable/version"
+          curl --fail --silent --location --output "${tmp_file}" "${latest_url}"
+          latest_version=$(cat "${tmp_file}")
+          if [[ -n ${latest_version} ]]; then
+            echo "Found devbox latest version ${latest_version}."
+            echo "latest_version=$latest_version" >> $GITHUB_ENV
+          else
+            echo "ERROR: unable to find the latest devbox version."
+            exit 1
+          fi
+        fi
+
+    - name: Mount devbox cli cache
+      if: inputs.refresh-cli == 'false'
+      id: cache-devbox-cli
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.local/bin/devbox
+        key: ${{ runner.os }}-${{ runner.arch }}-devbox-cli-${{ env.latest_version }}
+
+    - name: Install devbox cli
+      if: steps.cache-devbox-cli.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        DEVBOX_SHA256: ${{ inputs.sha256-checksum }}
+      run: |
+        export DEVBOX_USE_VERSION="${{ env.latest_version }}"
+        curl -fsSL https://get.jetify.com/devbox | FORCE=1 bash
+
+        version=$(devbox version)
+        if [[ ! "$version" = "$DEVBOX_USE_VERSION" ]]; then
+          echo "ERROR: mismatch devbox version downloaded. Expected $DEVBOX_USE_VERSION, got $version."
+          exit 1
+        fi
+        DEVBOX_BINARY="$(find "${HOME}/.cache/devbox/bin" -name devbox)"
+        if [ -n "$DEVBOX_SHA256" ]; then
+          if command -v "sha256sum" 1>/dev/null 2>&1; then
+            # Linux distributions will likely have this.
+            DEVBOX_CHECKSUM="$(sha256sum "$DEVBOX_BINARY" | cut -f1 -d' ')"
+          elif command -v "shasum" 1>/dev/null 2>&1; then
+            # MacOS comes with this.
+            DEVBOX_CHECKSUM="$(shasum -a 256 "$DEVBOX_BINARY" | cut -f1 -d' ')"
+          fi
+
+          if [ -z "$DEVBOX_CHECKSUM" ]; then
+            echo "ERROR: unable to get devbox checksum. Please ensure sha256sum or shasum is installed."
+            exit 2
+          fi
+
+          if [[ ! "$DEVBOX_CHECKSUM" = "$DEVBOX_SHA256" ]]; then
+            echo "ERROR: checksums do not match. Expected $DEVBOX_SHA256, got $DEVBOX_CHECKSUM."
+            exit 3
+          fi
+        fi
+        mkdir -p ~/.local/bin
+        mv "$DEVBOX_BINARY" ~/.local/bin/devbox
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Save devbox cli cache
+      if: inputs.refresh-cli == 'false' && steps.cache-devbox-cli.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.local/bin/devbox
+        key: ${{ runner.os }}-${{ runner.arch }}-devbox-cli-${{ env.latest_version }}
+
+    - name: Workaround nix store cache permission issue
+      if: inputs.enable-cache == 'true'
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "macOS" ]; then
+          gtar_path=$(which gtar)
+          sudo mv $gtar_path $gtar_path.orig
+          echo "#!/bin/sh" >> $gtar_path
+          echo "exec sudo $gtar_path.orig \"\$@\"" >> $gtar_path
+          sudo chmod +x $gtar_path
+        elif [ "$RUNNER_OS" == "Linux" ]; then
+          mkdir -p ~/.cache
+          mkdir -p ~/.local/bin
+          echo "#!/bin/sh" >> ~/.local/bin/tar
+          echo 'exec sudo /usr/bin/tar "$@"' >> ~/.local/bin/tar
+          sudo chmod +x ~/.local/bin/tar
+        fi
+
+    - name: Configure nix access-tokens
+      if: inputs.disable-nix-access-token == 'false'
+      shell: bash
+      run: |
+        mkdir -p ~/.config/nix
+        echo "access-tokens = github.com=${{ github.token }}" >> ~/.config/nix/nix.conf
+
+    - name: Install nix
+      if: inputs.skip-nix-installation == 'false'
+      uses: DeterminateSystems/nix-installer-action@e50d5f73bfe71c2dd0aa4218de8f4afa59f8f81d # v16
+      with:
+        logger: pretty
+        extra-conf: experimental-features = ca-derivations fetch-closure
+
+    - name: Mount nix store cache
+      id: cache-devbox-nix-store
+      if: inputs.enable-cache == 'true'
+      uses: actions/cache/restore@v4.2.0
+      with:
+        path: |
+          ~/.cache/devbox
+          ~/.cache/nix
+          ~/.local/state/nix
+          ~/.nix-defexpr
+          ~/.nix-profile
+          /nix/store
+          /nix/var/nix
+        key: ${{ runner.os }}-${{ runner.arch }}-devbox-nix-store-${{ hashFiles(format('{0}/devbox.lock', inputs.project-path)) }}
+
+    - name: Install devbox packages
+      shell: bash
+      run: |
+        devbox run --config=${{ inputs.project-path }} -- echo "Packages installed!"
+
+    - name: Save nix store cache
+      if: inputs.enable-cache == 'true' && steps.cache-devbox-nix-store.outputs.cache-hit != 'true'
+      uses: actions/cache/restore@v4.2.0
+      with:
+        path: |
+          ~/.cache/devbox
+          ~/.cache/nix
+          ~/.local/state/nix
+          ~/.nix-defexpr
+          ~/.nix-profile
+          /nix/store
+          /nix/var/nix
+        key: ${{ runner.os }}-${{ runner.arch }}-devbox-nix-store-${{ hashFiles(format('{0}/devbox.lock', inputs.project-path)) }}
+
+    - name: Restore tar command
+      if: inputs.enable-cache == 'true'
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "macOS" ]; then
+          gtar_path=$(which gtar)
+          sudo mv $gtar_path.orig $gtar_path
+        elif [ "$RUNNER_OS" == "Linux" ]; then
+          rm ~/.local/bin/tar
+        fi
