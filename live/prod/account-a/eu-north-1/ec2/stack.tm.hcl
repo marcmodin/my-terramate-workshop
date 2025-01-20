@@ -4,8 +4,7 @@ stack {
   id          = "890a7a50-1db7-4a36-aba2-7a8f82b633ce"
 
   tags = [
-    "aws",
-    "eu-north-1",
+"eun1",
     "ec2",
     "no-backend" 
   ]
