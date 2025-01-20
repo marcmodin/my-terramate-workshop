@@ -1,8 +1,9 @@
 // Configure environment variables
 globals "aws" {
   name       = "account-a"
-  account_id = "971422678851"
+  account_id = "02340283049820"
 }
+
 
 globals "terraform" "backend" {
   bucket = "terramate-workshop-state-bucket-${global.aws.account_id}"
