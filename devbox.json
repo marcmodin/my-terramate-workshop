@@ -1,10 +1,11 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.7/.schema/devbox.schema.json",
-  "packages": [
-    "terraform@1.9.5",
-    "terramate@0.11.5",
-    "awscli2@latest"
-  ],
+  "packages": {
+    "terramate": {
+      "version":   "0.10.8",
+      "platforms": ["aarch64-darwin"]
+    }
+  },
   "shell": {
     "init_hook": [
       "echo 'Welcome to devbox!' > /dev/null"
