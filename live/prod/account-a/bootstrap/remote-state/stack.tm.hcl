@@ -4,7 +4,7 @@ stack {
   id          = "2ebc76a8-65ea-444b-a303-707f99377118"
 
   tags = [
-    # "no-backend",
+    "no-backend",
     "bootstrap",
     "remote-state"
   ]
