@@ -5,8 +5,7 @@ stack {
 
   tags = [
     "eun1",
-    "security",
-    "no-backend"
+    "security"  
   ]
 
   after = [
@@ -16,5 +15,5 @@ stack {
 
 output "security_group_id" {
   backend = "default"
-  value = terraform_data.security_group.id
+  value   = terraform_data.security_group.id
 }

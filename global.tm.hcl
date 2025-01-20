@@ -1,7 +1,7 @@
 # Import all mixins from the mixins directory
-import {
-    source = "/mixins/*.tm.hcl"
-}
+# import {
+#   source = "/mixins/*.tm.hcl"
+# }
 
 # Configure default Terraform version in all stacks
 globals "terraform" {

@@ -1,7 +1,7 @@
 terramate {
-  required_version = "0.11.8"
+  required_version = "0.11.6"
   config {
-        
+
     # Enables the simplified adhoc HCL code generation
     # https://terramate.io/docs/cli/code-generation/tmgen
     experiments = [

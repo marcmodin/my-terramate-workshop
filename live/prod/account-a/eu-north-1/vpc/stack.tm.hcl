@@ -8,3 +8,8 @@ stack {
     "vpc"
   ]
 }
+
+output "vpc_id" {
+  backend = "default"
+  value   = terraform_data.vpc.id
+}

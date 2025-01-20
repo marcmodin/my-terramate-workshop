@@ -2,8 +2,10 @@
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.7/.schema/devbox.schema.json",
   "packages": {
     "terramate": {
-      "version":   "0.10.8",
-      "platforms": ["aarch64-darwin"]
+      "version": "0.11.6",
+      "platforms": [
+        "aarch64-darwin"
+      ]
     }
   },
   "shell": {

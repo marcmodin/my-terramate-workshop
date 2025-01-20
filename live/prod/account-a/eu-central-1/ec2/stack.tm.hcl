@@ -4,7 +4,7 @@ stack {
   id          = "4c8cbcec-748c-470f-afc1-7b1e6ffe0c76"
 
   tags = [
-   "euc1",
+    "euc1",
     "ec2"
   ]
 
